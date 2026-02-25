@@ -3,41 +3,35 @@ exports.handler = async (event) => {
   const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
   const BASE_ID = "appbx9KaWpz9q1qpE";
   const TABLE_ID = "tblgy7Oah36KTcmmS";
-
+  const ALLOWED_EMPLOYEES = ["Adam Charlton", "Anthony Lowe", "Mick Farrell", "Lyam Roche"];
   if (!AIRTABLE_TOKEN) {
     return { statusCode: 500, body: JSON.stringify({ error: "AIRTABLE_TOKEN not configured" }) };
   }
-
   const headers = {
     "Authorization": "Bearer " + AIRTABLE_TOKEN,
     "Content-Type": "application/json"
   };
-
   try {
     let allRecords = [];
     let offset = null;
-
     do {
       const url = new URL("https://api.airtable.com/v0/" + BASE_ID + "/" + TABLE_ID);
       url.searchParams.set("pageSize", "100");
       url.searchParams.set("sort[0][field]", "Date");
       url.searchParams.set("sort[0][direction]", "asc");
       if (offset) url.searchParams.set("offset", offset);
-
       const res = await fetch(url.toString(), { headers });
-
       if (!res.ok) {
         const err = await res.text();
         return { statusCode: res.status, body: JSON.stringify({ error: "Airtable API error: " + err }) };
       }
-
       const data = await res.json();
       allRecords = allRecords.concat(data.records);
       offset = data.offset || null;
     } while (offset);
-
     const records = allRecords
       .filter(r => r.fields["Employee"] && r.fields["Date"])
+      .filter(r => ALLOWED_EMPLOYEES.includes(r.fields["Employee"]))
       .map(r => {
         const f = r.fields;
         return {
@@ -57,7 +51,6 @@ exports.handler = async (event) => {
           monthYear: f["Month/Year"] || ""
         };
       });
-
     return {
       statusCode: 200,
       headers: {
@@ -66,7 +59,6 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({ records, lastFetched: new Date().toISOString() })
     };
-
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
