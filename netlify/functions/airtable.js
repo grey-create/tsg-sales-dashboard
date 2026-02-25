@@ -3,7 +3,6 @@ exports.handler = async (event) => {
   const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
   const BASE_ID = "appbx9KaWpz9q1qpE";
   const TABLE_ID = "tblgy7Oah36KTcmmS";
-  const ALLOWED_EMPLOYEES = ["Adam Charlton", "Anthony Lowe", "Mick Farrell", "Lyam Roche"];
   if (!AIRTABLE_TOKEN) {
     return { statusCode: 500, body: JSON.stringify({ error: "AIRTABLE_TOKEN not configured" }) };
   }
@@ -17,6 +16,7 @@ exports.handler = async (event) => {
     do {
       const url = new URL("https://api.airtable.com/v0/" + BASE_ID + "/" + TABLE_ID);
       url.searchParams.set("pageSize", "100");
+      url.searchParams.set("view", "Dashboard Feed");
       url.searchParams.set("sort[0][field]", "Date");
       url.searchParams.set("sort[0][direction]", "asc");
       if (offset) url.searchParams.set("offset", offset);
@@ -31,7 +31,6 @@ exports.handler = async (event) => {
     } while (offset);
     const records = allRecords
       .filter(r => r.fields["Employee"] && r.fields["Date"])
-      .filter(r => ALLOWED_EMPLOYEES.includes(r.fields["Employee"]))
       .map(r => {
         const f = r.fields;
         return {
